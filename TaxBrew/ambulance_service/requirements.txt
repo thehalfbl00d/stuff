@@ -1,0 +1,10 @@
+Flask==2.3.3
+Werkzeug==2.3.7
+Flask-SQLAlchemy==3.0.2
+Flask-SocketIO==5.3.6
+Flask-Login==0.6.2
+geopy==2.4.1
+python-dotenv==1.0.0
+googlemaps==4.10.0
+mysqlclient==2.2.4
+PyMySQL==1.1.0

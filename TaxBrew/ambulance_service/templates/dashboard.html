@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Dashboard - EmergencyLink</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="index.html" class="text-2xl font-bold text-red-600">EmergencyLink</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700" id="hospitalName">Hospital Name</span>
+                    <button onclick="logout()" class="text-gray-700 hover:text-red-600">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Emergency Calls List -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Emergency Calls</h2>
+                <div class="space-y-4" id="emergencyCallsList">
+                    <!-- Emergency calls will be populated here -->
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    <div id="map" class="h-[600px] rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ambulance Status -->
+        <div class="mt-8 bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Ambulance Fleet</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="ambulanceList">
+                <!-- Ambulance status cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([53.3498, -6.2603], 12); // Dublin coordinates
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Initialize Socket.IO
+        const socket = io();
+        const ambulanceMarkers = new Map();
+        const emergencyMarkers = new Map();
+
+        // Handle new emergency calls
+        socket.on('new_emergency', function(data) {
+            // Add marker to map
+            const marker = L.marker([data.latitude, data.longitude])
+                .bindPopup(`Emergency Call #${data.id}<br>${data.description}`)
+                .addTo(map);
+            emergencyMarkers.set(data.id, marker);
+
+            // Add to emergency calls list
+            const emergencyItem = document.createElement('div');
+            emergencyItem.className = 'p-4 border rounded-lg bg-red-50';
+            emergencyItem.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-semibold">Emergency Call #${data.id}</h3>
+                        <p class="text-sm text-gray-600">${data.description}</p>
+                    </div>
+                    <button onclick="assignAmbulance(${data.id})" 
+                            class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        Assign
+                    </button>
+                </div>
+            `;
+            document.getElementById('emergencyCallsList').prepend(emergencyItem);
+        });
+
+        // Handle ambulance movement
+        socket.on('ambulance_moved', function(data) {
+            let marker = ambulanceMarkers.get(data.id);
+            if (marker) {
+                marker.setLatLng([data.latitude, data.longitude]);
+            } else {
+                marker = L.marker([data.latitude, data.longitude])
+                    .bindPopup(`Ambulance #${data.id}`)
+                    .addTo(map);
+                ambulanceMarkers.set(data.id, marker);
+            }
+        });
+
+        // Function to assign ambulance to emergency
+        function assignAmbulance(emergencyId) {
+            // Implementation for assigning ambulance
+            fetch('/api/assign-ambulance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emergency_id: emergencyId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Ambulance assigned successfully!');
+                } else {
+                    alert('Failed to assign ambulance: ' + data.message);
+                }
+            });
+        }
+
+        // Function to update ambulance status
+        function updateAmbulanceStatus(ambulanceId, status) {
+            fetch('/api/update-ambulance-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ambulance_id: ambulanceId,
+                    status: status
+                })
+            });
+        }
+
+        // Load initial ambulance data
+        fetch('/api/ambulances')
+            .then(response => response.json())
+            .then(ambulances => {
+                ambulances.forEach(ambulance => {
+                    // Add marker to map
+                    const marker = L.marker([ambulance.latitude, ambulance.longitude])
+                        .bindPopup(`Ambulance ${ambulance.vehicle_number}`)
+                        .addTo(map);
+                    ambulanceMarkers.set(ambulance.id, marker);
+
+                    // Add to ambulance list
+                    const ambulanceCard = document.createElement('div');
+                    ambulanceCard.className = 'p-4 border rounded-lg';
+                    ambulanceCard.innerHTML = `
+                        <h3 class="font-semibold">Ambulance ${ambulance.vehicle_number}</h3>
+                        <p class="text-sm text-gray-600">Status: ${ambulance.status}</p>
+                        <div class="mt-2">
+                            <button onclick="updateAmbulanceStatus(${ambulance.id}, 'available')" 
+                                    class="px-2 py-1 text-sm bg-green-600 text-white rounded">
+                                Available
+                            </button>
+                            <button onclick="updateAmbulanceStatus(${ambulance.id}, 'busy')" 
+                                    class="px-2 py-1 text-sm bg-red-600 text-white rounded">
+                                Busy
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('ambulanceList').appendChild(ambulanceCard);
+                });
+            });
+
+        function logout() {
+            // Implementation for logout
+            window.location.href = '/logout';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+# PHP
+/vendor/
+composer.phar
+composer.lock
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.DS_Store
+
+# Logs and databases
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+*.log
+*.sql
+*.sqlite
+
+# Cache and temporary files
+.php_cs.cache
+.phpunit.result.cache
+.phpunit.cache
+/public/hot
+/public/storage
+
+# Node modules (if you add JavaScript build process later)
+/node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+
+# Build files
+/public/build/
+/public/dist/
+/public/mix-manifest.json
+
+# Testing
+.phpunit.result.cache
+/coverage/
+.coverage
+htmlcov/
+
+# Operating System
+.DS_Store
+Thumbs.db
