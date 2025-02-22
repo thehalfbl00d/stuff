@@ -15,7 +15,7 @@ A modern tax management system built with PHP.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/taxbrew.git
+git clone https://github.com/thehalfbl00d/taxbrew.git
 cd taxbrew
 ```
 
